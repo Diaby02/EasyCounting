@@ -1,0 +1,36 @@
+DATASET:
+  DATA_PATH: C:\Users\bourezn\Documents\Master_thesis\data\FSC147\
+  IMAGE_SIZE: 384
+  IMG_BOX: C:\Users\bourezn\Documents\Master_thesis\data\CeramicCapa\bboxes\Images_0_box.txt
+  IMG_PATH: C:\Users\bourezn\Documents\Master_thesis\data\CeramicCapa\images\Images_9.png
+  TILING_P: 0.5
+MODEL:
+  EMB_DIM: 256
+  KERNEL_DIM: 3
+  MODEL_PATH: C:\Users\bourezn\Documents\Master_thesis\deepcounting\loca\checkpoints\loca_full.pt
+  NB_CHANNEL: 64
+  NUM_ENC_LAYERS: 3
+  NUM_HEADS: 8
+  NUM_OBJECTS: 3
+  NUM_OPE_ITERATIVE_STEPS: 3
+  REDUCTION: 8
+  LAST_LAYER: layer4
+  BACKBONE_MODEL: ResNet50
+  PADDING: False
+TRAINING:
+  AUX_WEIGHT: 0.3
+  BACKBONE_LR: 0
+  BATCH_SIZE: 4
+  DEVICE: cpu
+  DROPOUT: 0.1
+  EPOCH: 40
+  EVALUATE: false
+  FIRST: false
+  LEARNING_RATE: 0.0001
+  LR_DROP: 200
+  MAX_GRAD_NORM: 0.1
+  PRENORM: true
+  TEST_DATA: test_indu
+  TRAIN: false
+  USE_FIRST: true
+  WEIGHT_DECAY: 0.0001

@@ -1,0 +1,5 @@
+Number of images between 3:2 and 2:3 aspect ratio: 737
+Number of images above 3:2 and 2:3 aspect ratio: 549
+Number of images above 3:2 aspect ratio: 368
+Number of images below 2:3 aspect ratio: 181
+25, 50 and 75th quantile of the object sizes: [27. 43. 67.]

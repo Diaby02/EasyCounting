@@ -1,0 +1,42 @@
+---
+DATASET:
+  # size of the images 
+  IMAGE_SIZE: 512
+  PATCH_SIZE: 32
+  TILING_P: 0.5
+  DATA_PATH: /mnt/grodisk/Nicolas_student/FSC147
+
+MODEL:
+  # A parameter to control model complexity 
+  # (i.e. number of trainable parameters)
+  MODEL_PATH: /mnt/grodisk/Nicolas_student/deepcounting/adapted_loca/Results/EfficentNet/loca_50_frozen.pt
+  REDUCTION: 8
+  NUM_ENC_LAYERS: 3
+  NUM_OPE_ITERATIVE_STEPS: 3
+  EMB_DIM: 256
+  NUM_HEADS: 8
+  KERNEL_DIM: 3
+  NUM_OBJECTS: 3
+  LAST_LAYER: layer4
+  BACKBONE_MODEL: EfficientNet
+  PADDING: False
+  
+TRAINING: 
+
+  LEARNING_RATE: 0.0001
+  BACKBONE_LR: 0
+  LR_DROP: 200
+  DEVICE: cuda:1
+  EPOCH: 100
+  BATCH_SIZE: 4
+  WEIGHT_DECAY: 0.0001
+  DROPOUT: 0.1
+  MAX_GRAD_NORM: 0.1
+  AUX_WEIGHT: 0.3
+  PRENORM: true
+
+  TRAIN: true
+  TEST_DATA: 'test_indu'
+  EVALUATE: false
+  FIRST: false     # set to true only if it is the first image of the dataset
+  USE_FIRST: false # set to true only if you are in a context when you want to use the example of the first image of a dataset
