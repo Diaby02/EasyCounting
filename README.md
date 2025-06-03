@@ -1,10 +1,10 @@
 # Class-Agnostic Object Counting Model for industrial applications
 
-Nicolas Bourez
+Author: Nicolas Bourez
 
 ## Introduction
 
-This code aims to compare different class-agnostic counting models in order to understand their capailities
+This code aims to compare different class-agnostic counting models in order to understand their capabilities
 when applied in industrial data. For this purpose, the code from the different models have been included in this repository.
 
 The link to the official code of the different models are listed below:
@@ -34,39 +34,30 @@ The repo contains multiple folders and sub-folders:
 
 ````
 $PATH_TO_REPO/
-├──── adapted_loca/
+├──── model/
 │    ├──── checkpoints/
 │    ├──── config/
 │    ├──── Results/
 │    ├──── demo.py
 │    ├──── test.py
 │    
-├──── bmnet/
-│    ├──── 6146 images (.jpg)
-│ 
-├──── cacvit/
-├──── countgd/
-├──── countr/
-├──── loca/
-├──── ltce/ (FamNet)
 ├──── plots_and_statistics/
-├──── ltce/
+├──── utils/
 ├──── scripts/
 ├────.gitignore
 
 ````
 
-Every model repo have been modified such that they have the same testing structure.
-Every model have **at least**
+The model folder EasyCounting must have
 * A checkpoints folder containing the model weights
 * A Results folder containing all the results from the testing metrics, visualisation, ...
 * A config folder containing at least a demoExp.yaml and a testExp.yaml, containing the parameters of the model you which to modify
 
-Only the *adapted_loca* model is trainable, by running the function main.py. We will explain our to configure
+The model is trainable by running the function main.py. We will explain our to configure
 each model later in the repo
 
 ## Preparation
-### 1. Download Datasets
+### 1. 📦 Download Datasets
 
 In our project, three datasets have been used:
 
@@ -77,65 +68,39 @@ In our project, three datasets have been used:
 FSC-147 is the same as the official one, but we changed the split file by adding new configurations:
 * training_ar_uniform: a sub
 
-### 2. Install GCC
 
-Install GCC. In this project, GCC 11.3 and 11.4 were tested. The following command installs GCC and other development libraries and tools required for compiling software in Ubuntu.
+### 2. 🚀 Set Up Anaconda Environment:
 
-```
-sudo apt update
-sudo apt install build-essential
-```
-
-### 3. Clone Repository
+The following commands will create a suitable Anaconda environment for running the EasyCounting training and inference procedures. To produce the results in the paper, we used [Anaconda version 2024.02-1](https://repo.anaconda.com/archive/Anaconda3-2024.02-1-Linux-x86_64.sh).
 
 ```
-git clone git@github.com:niki-amini-naieni/CountGD.git
-```
-
-### 4. Set Up Anaconda Environment:
-
-The following commands will create a suitable Anaconda environment for running the CountGD training and inference procedures. To produce the results in the paper, we used [Anaconda version 2024.02-1](https://repo.anaconda.com/archive/Anaconda3-2024.02-1-Linux-x86_64.sh).
-
-```
-conda create -n countgd python=3.9.19
-conda activate countgd
-cd CountGD
+conda create -n easycounting python
+conda activate easycounting
+cd EasyCounting
 pip install -r requirements.txt
-export CC=/usr/bin/gcc-11 # this ensures that gcc 11 is being used for compilation
-cd models/GroundingDINO/ops
-python setup.py build install
-python test.py # should result in 6 lines of * True
-pip install git+https://github.com/facebookresearch/segment-anything.git
-cd ../../../
+```
+
+### 2. 🔧 Install [anomalib](https://github.com/open-edge-platform/anomalib) with all dependencies (version 2.0.0):
+
+```
+pip install anomalib[full]==2.0.0
 ```
 
 ### 5. Download Pre-Trained Weights
 
-* Make the ```checkpoints``` directory inside the ```CountGD``` repository.
+* Make the ```checkpoints``` directory inside the ```model``` repository.
 
   ```
   mkdir checkpoints
   ```
 
-* Execute the following command.
+* Install the pretrained-weights.
 
   ```
-  python download_bert.py
+  TODO
   ```
 
-* Download the pretrained Swin-B GroundingDINO weights.
-
-  ```
-  wget -P checkpoints https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha2/groundingdino_swinb_cogcoor.pth
-  ```
-
-* Download the pretrained ViT-H Segment Anything Model (SAM) weights.
-
-  ```
-  wget -P checkpoints https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth
-  ```
-
-## CountGD Inference & Pre-Trained Weights
+## EasyCounting Inference & Pre-Trained Weights
 
 The model weights used in the paper can be downloaded from [Google Drive link (1.2 GB)](https://drive.google.com/file/d/1RbRcNLsOfeEbx6u39pBehqsgQiexHHrI/view?usp=sharing). To reproduce the results in the paper, run the following commands after activating the Anaconda environment set up in step 4 of [Preparation](#preparation). Make sure to change the directory and file names in [datasets_fsc147_val.json](https://github.com/niki-amini-naieni/CountGD/blob/main/config/datasets_fsc147_val.json) and [datasets_fsc147_test.json](https://github.com/niki-amini-naieni/CountGD/blob/main/config/datasets_fsc147_test.json) to the ones you set up in step 1 of [Preparation](#preparation). Make sure that the model file name refers to the model that you downloaded.
 
