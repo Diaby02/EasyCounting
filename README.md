@@ -1,4 +1,4 @@
-# Class-Agnostic Object Counting Model for industrial applications
+# Class-Agnostic Object Counting Model for manufacturing applications
 
 Author: Nicolas Bourez
 
