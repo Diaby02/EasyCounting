@@ -80,13 +80,7 @@ cd EasyCounting
 pip install -r requirements.txt
 ```
 
-### 2. 🔧 Install [anomalib](https://github.com/open-edge-platform/anomalib) with all dependencies (version 2.0.0):
-
-```
-pip install anomalib[full]==2.0.0
-```
-
-### 5. Download Pre-Trained Weights
+### 3. Download Pre-Trained Weights
 
 * Make the ```checkpoints``` directory inside the ```model``` repository.
 
