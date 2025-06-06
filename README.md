@@ -5,7 +5,7 @@ Author: Nicolas Bourez
 ## Introduction
 
 This code aims to compare different class-agnostic counting models in order to understand their capabilities
-when applied in industrial data. For this purpose, the code from the different models have been included in this repository.
+when applied in industrial data. For this purpose, the code from these different models might have been included in this repository.
 
 The link to the official code of the different models are listed below:
 
