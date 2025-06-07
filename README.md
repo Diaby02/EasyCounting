@@ -89,7 +89,7 @@ pip install -r requirements.txt
 
 * Install the pretrained-weights.
 
-  The model weights used in the paper can be downloaded from [Google Drive link](https://drive.google.com/drive/folders/1QjDtryjR_df4ynEq0TA_yxT-f8g6lSgX?usp=drive_link). 
+  The model weights used in the paper can be downloaded from [Google Drive link](https://drive.google.com/drive/folders/1QjDtryjR_df4ynEq0TA_yxT-f8g6lSgX?usp=sharing). 
 
 ## Inference
 
