@@ -17,16 +17,15 @@ The link to the official code of the different models are listed below:
 * [CountGD](https://github.com/Hzzone/PseCo)
 * [PseCo](#acknowledgements)
 
+Furthermore, two new models called EasyCounting and MobileCount have been introduced in order the meet some industrial requirements.
+
 ## Contents
 
 * [Structure] (#structure)
 * [Preparation](#preparation)
-* [CountGD Inference & Pre-Trained Weights](#countgd-inference--pre-trained-weights)
-* [Testing Your Own Dataset](#testing-your-own-dataset)
-* [CountGD Train](#countgd-train)
-* [CountBench](#countbench)
-* [Citation](#citation)
-* [Acknowledgements](#acknowledgements)
+* [Inference](#inference)
+* [Testing Custom Dataset](#testing-custom-dataset)
+* [Training](#training)
 
 ## Structure
 
@@ -92,7 +91,7 @@ pip install -r requirements.txt
 
   The model weights used in the paper can be downloaded from [Google Drive link (1.2 GB)](https://drive.google.com/file/d/1RbRcNLsOfeEbx6u39pBehqsgQiexHHrI/view?usp=sharing). 
 
-## EasyCounting Inference & Pre-Trained Weights
+## Inference
 
 To reproduce the results in the paper, run the following commands after activating the Anaconda environment set up in step 4 of [Preparation](#preparation).
 For inference, the only thing to change is the ```testExp.yaml``` configuration file in the ```config/``` folder. The DefaultExp is set as an example, please do not change it.
@@ -133,14 +132,14 @@ Example:
 python test.py -exp EasyCouting32Exp -v -hm -d
 ```
 
-## Testing Your Own Dataset
+## Testing Custom Dataset
 
 You can easily test you own dataset, but it has to meet some requirements:
 * the dataset folder must have the same structure as mentionned before
 * the images must be in .jpeg or .png format, while the density map must be tensor files .npy
 * the split.json file and annotation.json msut follow the same configuration as FSC147 and FSCindu
 
-## CountGD Train
+## Training
 
 You can train a model whatever configuration you want, just change the main.exp config file and run
 
