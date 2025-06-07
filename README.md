@@ -122,7 +122,7 @@ For testing just run
 python test.py 
 ```
 
-It will run the ```testExp.yaml``` by default. You can provide another config file by using the arg ```-exp```. Some extra arguments can also be provided like 
+It will run the ```testExp.yaml``` by default. You can provide another config file by using the arg ```-exp``` (without .yaml at the end). Some extra arguments can also be provided like 
 * ```-v```: output a visualisation for each image of the dataset, in the Results/name_of_the_model/ folder
 * ```-hm```: calculate the OTM F1 score (can take up to 10' per image), provide the results in a hm.csv file
 * ```-d```: calculate some metrics and provide informations for each images (mae,mre,avg box size,...), provide the results in a data_statistics.csv file
@@ -130,7 +130,7 @@ It will run the ```testExp.yaml``` by default. You can provide another config fi
 Example:
 
 ```
-python test.py -exp EasyCouting32Exp.yaml -v -hm -d
+python test.py -exp EasyCouting32Exp -v -hm -d
 ```
 
 ## Testing Your Own Dataset
