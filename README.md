@@ -90,87 +90,62 @@ pip install -r requirements.txt
 
 * Install the pretrained-weights.
 
-  ```
-  TODO
-  ```
+  The model weights used in the paper can be downloaded from [Google Drive link (1.2 GB)](https://drive.google.com/file/d/1RbRcNLsOfeEbx6u39pBehqsgQiexHHrI/view?usp=sharing). 
 
 ## EasyCounting Inference & Pre-Trained Weights
 
-The model weights used in the paper can be downloaded from [Google Drive link (1.2 GB)](https://drive.google.com/file/d/1RbRcNLsOfeEbx6u39pBehqsgQiexHHrI/view?usp=sharing). To reproduce the results in the paper, run the following commands after activating the Anaconda environment set up in step 4 of [Preparation](#preparation). Make sure to change the directory and file names in [datasets_fsc147_val.json](https://github.com/niki-amini-naieni/CountGD/blob/main/config/datasets_fsc147_val.json) and [datasets_fsc147_test.json](https://github.com/niki-amini-naieni/CountGD/blob/main/config/datasets_fsc147_test.json) to the ones you set up in step 1 of [Preparation](#preparation). Make sure that the model file name refers to the model that you downloaded.
+To reproduce the results in the paper, run the following commands after activating the Anaconda environment set up in step 4 of [Preparation](#preparation).
+For inference, the only thing to change is the ```testExp.yaml``` configuration file in the ```config/``` folder. The DefaultExp is set as an example, please do not change it.
 
-For the validation set (takes ~ 26 minutes on 1 RTX 3090 GPU):
+Make sure to enter a valid absolute path of the dataset, and that the following files and folders are present in the dataset folder:
+
+````
+$PATH_TO_DATASET/
+├──── images/ 
+├──── gt_density_map/
+├──── split.json
+├──── annotation.json
+````
+There are 4 different configuration of the models:
+
+* EasyCounting-64: DefaultExp with a patch size of 64 and a padding set to true
+* MobileCount-64: EasyCounting-64 but setting MODEL__BACKBONE to ```MobileNetV3```
+* EasyCounting-32: DefaultExp with NUM_OPE_ITERATIVES_STEPS set to 3, a padding set to true and a rotation set to true
+* MobileCount-32: EasyCounting-32 but setting MODEL__BACKBONE to ```MobileNetV3```
+
+Pay attention to also provide the correct checkpoints path, as well as provide the name you want to give to your model.
+Make shure to create the ```Results/``` folder specified in the structure of the code, otherwise you will get an error.
+
+For testing just run
 
 ```
-python -u main_inference.py --output_dir ./countgd_val -c config/cfg_fsc147_val.py --eval --datasets config/datasets_fsc147_val.json --pretrain_model_path checkpoints/checkpoint_fsc147_best.pth --options text_encoder_type=checkpoints/bert-base-uncased --crop --sam_tt_norm --remove_bad_exemplar
+python test.py 
 ```
 
-For the validation set with no Segment Anything Model (SAM) test-time normalization and, hence, slightly reduced counting accuracy (takes ~ 6 minutes on 1 RTX 3090 GPU):
+It will run the ```testExp.yaml``` by default. You can provide another config file by using the arg ```-exp```. Some extra arguments can also be provided like 
+* ```-v```: output a visualisation for each image of the dataset, in the Results/name_of_the_model/ folder
+* ```-hm```: calculate the OTM F1 score (can take up to 10' per image), provide the results in a hm.csv file
+* ```-d```: calculate some metrics and provide informations for each images (mae,mre,avg box size,...), provide the results in a data_statistics.csv file
+
+Example:
 
 ```
-python -u main_inference.py --output_dir ./countgd_val -c config/cfg_fsc147_val.py --eval --datasets config/datasets_fsc147_val.json --pretrain_model_path checkpoints/checkpoint_fsc147_best.pth --options text_encoder_type=checkpoints/bert-base-uncased --crop --remove_bad_exemplar
+python test.py -exp EasyCouting32Exp.yaml -v -hm -d
 ```
-
-For the test set (takes ~ 26 minutes on 1 RTX 3090 GPU):
-
-```
-python -u main_inference.py --output_dir ./countgd_test -c config/cfg_fsc147_test.py --eval --datasets config/datasets_fsc147_test.json --pretrain_model_path checkpoints/checkpoint_fsc147_best.pth --options text_encoder_type=checkpoints/bert-base-uncased --crop --sam_tt_norm --remove_bad_exemplar
-```
-
-For the test set with no Segment Anything Model (SAM) test-time normalization and, hence, slightly reduced counting accuracy (takes ~ 6 minutes on 1 RTX 3090 GPU):
-
-```
-python -u main_inference.py --output_dir ./countgd_test -c config/cfg_fsc147_test.py --eval --datasets config/datasets_fsc147_test.json --pretrain_model_path checkpoints/checkpoint_fsc147_best.pth --options text_encoder_type=checkpoints/bert-base-uncased --crop --remove_bad_exemplar
-```
-
-* Note: Inference can be further sped up by increasing the batch size for evaluation
 
 ## Testing Your Own Dataset
 
-You can run CountGD on all the images in a zip folder uploaded to Google Drive using the Colab notebook [here](https://github.com/niki-amini-naieni/CountGD/blob/main/google-drive-batch-process-countgd.ipynb) in the repository or [here](https://huggingface.co/spaces/nikigoli/countgd/blob/main/notebooks/demo.ipynb) online. This code supports a single text description for the whole dataset but can be easily modified to handle different text descriptions for different images and to support exemplar inputs.
+You can easily test you own dataset, but it has to meet some requirements:
+* the dataset folder must have the same structure as mentionned before
+* the images must be in .jpeg or .png format, while the density map must be tensor files .npy
+* the split.json file and annotation.json msut follow the same configuration as FSC147 and FSCindu
 
 ## CountGD Train
 
-See [here](https://github.com/niki-amini-naieni/CountGD/blob/main/training.md) for the code and [here](https://github.com/niki-amini-naieni/CountGD/issues/32) about a relevant issue
-
-## CountBench
-
-See [here](https://github.com/niki-amini-naieni/CountGD/issues/6)
-
-## Citation
-If you use our research in your project, please cite our paper.
+You can train a model whatever configuration you want, just change the main.exp config file and run
 
 ```
-@InProceedings{AminiNaieni24,
-  author = "Amini-Naieni, N. and Han, T. and Zisserman, A.",
-  title = "CountGD: Multi-Modal Open-World Counting",
-  booktitle = "Advances in Neural Information Processing Systems (NeurIPS)",
-  year = "2024",
-}
+python main.py 
 ```
-
-### Acknowledgements
-
-This repository is based on the [Open-GroundingDino](https://github.com/longzw1997/Open-GroundingDino/tree/main) and uses code from the [GroundingDINO repository](https://github.com/IDEA-Research/GroundingDINO). If you have any questions about our code implementation, please contact us at [niki.amini-naieni@eng.ox.ac.uk](mailto:niki.amini-naieni@eng.ox.ac.uk).
-
-# Bilinear Matching Network
-
-This repository is the official implementation of our CVPR 2022 Paper "Represent, Compare, and Learn: A Similarity-Aware Framework for Class-Agnostic Counting". [Link](https://arxiv.org/abs/2203.08354)
-
-In Proc. IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2022
-Min Shi, Hao Lu, Chen Feng, Chengxin Liu, Zhiguo Cao<sup>*</sup>
-
-Key Laboratory of Image Processing and Intelligent Control, Ministry of Education
-School of Artificial Intelligence and Automation, Huazhong University of Science and Technology, China
-<sup>*</sup>  corresponding author.
-
-## Updates
-- We are currently organizing a more detailed readme file, with more instructions and discussions on how to build a strong baseline for class-agnostic counting. You can first explore our codes. Feel free to post your questions!
-- 23 Apr 2022: Training and inference code is released.
-
-## Installation
-Our code has been tested on Python 3.8.5 and PyTorch 1.8.1+cu111. Please follow the official instructions to setup your environment. See other required packages in `requirements.txt`.
-
-## Data Preparation
-We train and evaluate our methods on FSC-147 dataset. Please follow the [FSC-147 official repository](https://github.com/cvlab-stonybrook/LearningToCountEverything) to download and unzip the dataset. Then, please place the data lists  ``data_list/train.txt``, ``data_list/val.txt`` and ``data_list/test.txt`` in the dataset directory. Note that, you should also download data annotation file ``annotation_FSC147_384.json`` and ``ImageClasses_FSC147.txt`` file from [Link](https://github.com/cvlab-stonybrook/LearningToCountEverything/tree/master/data) and place them in the dataset folder. Final the path structure used in our code will be like :
 
 
