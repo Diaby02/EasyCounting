@@ -21,7 +21,7 @@ Furthermore, two new models called EasyCounting and MobileCount have been introd
 
 ## Contents
 
-* [Structure] (#structure)
+* [Structure](#structure)
 * [Preparation](#preparation)
 * [Inference](#inference)
 * [Testing Custom Dataset](#testing-custom-dataset)
