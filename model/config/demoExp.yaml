@@ -1,36 +1,42 @@
 DATASET:
-  DATA_PATH: C:\Users\bourezn\Documents\Master_thesis\data\FSC147\
   IMAGE_SIZE: 384
-  IMG_BOX: C:\Users\bourezn\Documents\Master_thesis\data\CeramicCapa\bboxes\Images_0_box.txt
-  IMG_PATH: C:\Users\bourezn\Documents\Master_thesis\data\CeramicCapa\images\Images_9.png
+  PATCH_SIZE: 64
+  PATCH_SIZE_RATIO: 1
+  IMG_BOX: PATH_TO_IMAGE_BOX
+  IMG_PATH: PATH_TO_IMAGE
   TILING_P: 0.5
 MODEL:
+  BACKBONE_MODEL: DefaultExp
   EMB_DIM: 256
   KERNEL_DIM: 3
-  MODEL_PATH: C:\Users\bourezn\Documents\Master_thesis\deepcounting\loca\checkpoints\loca_full.pt
+  LAST_LAYER: layer4
+  MODEL_NAME: EasyCounting_64
+  MODEL_PATH: PATH_TO_REPO\checkpoints\easycounting_64.pt
   NB_CHANNEL: 64
+  NUM_DECODER_LAYERS: 0
   NUM_ENC_LAYERS: 3
   NUM_HEADS: 8
   NUM_OBJECTS: 3
-  NUM_OPE_ITERATIVE_STEPS: 3
+  NUM_OPE_ITERATIVE_STEPS: 0
+  PADDING: true
   REDUCTION: 8
-  LAST_LAYER: layer4
-  BACKBONE_MODEL: ResNet50
-  PADDING: False
+  SCALE_AS_KEY: false
+  SCALE_ONLY: false
+  TRAINABLE_REFERENCES: false
+  TRAINABLE_ROTATION: false
+  TRAINABLE_ROT_NB_BLOCKS: 1
 TRAINING:
+  MODE: "demo" # demo, train or test
+  DEVICE: cuda:0
+  PRINT_NETWORK_STATS: false
+
   AUX_WEIGHT: 0.3
   BACKBONE_LR: 0
   BATCH_SIZE: 4
-  DEVICE: cpu
   DROPOUT: 0.1
-  EPOCH: 40
-  EVALUATE: false
-  FIRST: false
+  EPOCH: 100
   LEARNING_RATE: 0.0001
   LR_DROP: 200
   MAX_GRAD_NORM: 0.1
   PRENORM: true
-  TEST_DATA: test_indu
-  TRAIN: false
-  USE_FIRST: true
   WEIGHT_DECAY: 0.0001

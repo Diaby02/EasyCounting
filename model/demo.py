@@ -27,12 +27,30 @@ rootDirectory = dirname(abspath(__file__))
 parser = argparse.ArgumentParser()
 parser.add_argument('-exp', type=str, default='demoExp')
 parser.add_argument('-out', type=str, default=os.path.join(rootDirectory, "Results/demoExp"))
-parser.add_argument('-fv', '--full_visualization', action='store_true')
+parser.add_argument('-v', '--visualization', action='store_true')
+
+######################################################################################
+#
+# MAIN PROCEDURE 
+# launches an experiment whose parameters are described in a yaml file  
+# 
+# Example of use in the terminal: python main.py -exp demoExp
+# with 'demoExp' beeing the name of the yaml file (in the config folder) with 
+# the wanted configuration 
+#
+# Other arguments are available, such as:
+# 
+#   -out : precise the folder you want to put the results in
+#   -v  : precise if you want a visualization or not
+#
+######################################################################################
 
 def main(parser):
+
     # -----------------
     # 0. INITIALISATION 
     # -----------------
+
     # Read the yaml configuration file 
     stream = open(rootDirectory + '\\config\\' + parser.exp + '.yaml', 'r')
     param  = yaml.safe_load(stream)
@@ -66,6 +84,12 @@ def main(parser):
     # 3. LOAD THE BOUNDING BOXES
     # ------------------------------------------
 
+    # structure of the bbox.txt file (for 3 exemplars):
+
+    #y1_1 x1_1 y2_1 x2_1
+    #y1_2 x1_2 y2_2 x2_2
+    #y1_3 x1_3 y2_3 x2_3
+
     image_name = os.path.basename(input_image)
     image_name = os.path.splitext(image_name)[0]
     
@@ -93,22 +117,7 @@ def main(parser):
     # 4. INFERENCE
     # ---------------------
 
-    image = Image.open(input_image).convert("RGB")
-
-    # si on utilise les exemples de la première image
-    if use_first:
-        if not os.path.isfile(os.path.join(resultsPath, "first_image.txt")):
-            Exception("Change use first to true in the demoExp file")
-        with open(os.path.join(resultsPath, "first_image.txt"),"r") as f:
-            image_first = f.readlines()[0]
-        _, boxes = resize_img(Image.open(image_first).convert("RGB"), rects1, image_size, num_objects)
-        image, _ = resize_img(image, None, image_size, num_objects)
-
-    else:
-        image, boxes = resize_img(image, rects1, image_size, num_objects)
-        fout = open(os.path.join(resultsPath, "first_image.txt"), "w")
-        fout.write(input_image)
-        fout.close()
+    image, boxes = resize_img(image, rects1, image_size, num_objects)
 
     image = image.to(myNetwork.get_device())
     boxes = boxes.to(myNetwork.get_device())
@@ -118,9 +127,6 @@ def main(parser):
     print(colored('Start Inference', 'red'))
     start = time.time()
     with torch.no_grad():
-        if use_first:
-            out, _ = myNetwork.get_model()(image, None)
-        else:
             out, _ = myNetwork.get_model()(image, boxes)
     end = time.time()
 
@@ -132,17 +138,6 @@ def main(parser):
     pred_cnt = round(out.sum().item())
     print('===> The predicted count is: {:6.2f}'.format(pred_cnt))
 
-    #find peaks
-    peaks, pred_cnt_peaks,_,_ = find_peaks(out, boxes)
-
-    #write result in a text file
-    output_result = os.path.join(resultsPath, "count_" + image_name + ".txt")
-    fout = open(output_result, "w")
-    fout.write(str(pred_cnt)+"\n")
-    fout.write(str(round((end - start)*1000,2)) +"\n")
-    fout.write(str(pred_cnt_peaks))
-    fout.close()
-
     #save density map in a tensor file
     torch.save(out, os.path.join(resultsPath, image_name + "_out.pt"))
 
@@ -150,17 +145,20 @@ def main(parser):
     # 5. VISUALIZATION
     # ---------------------
     
-    if not use_first:
-        if parser.full_visualization:
-            full_vizu(input_image, out.detach().cpu(), boxes.cpu(), torch.tensor(rects1).to('cpu'), resultsPath,"LOCA",pred_cnt=pred_cnt_peaks, peaks=peaks)
-        else:
-            partial_vizu(input_image, out.detach().cpu(), boxes.cpu(), torch.tensor(rects1).to('cpu'), resultsPath,"LOCA",pred_cnt=pred_cnt_peaks, peaks=peaks)
-
-    else:
-        simple_vizu(input_image, out.detach().cpu(), os.path.join(resultsPath, image_name + "_map.png"), title="LOCA",pred_cnt=pred_cnt, peaks=peaks)
+    if parser.visulalization:
+        simple_vizu(input_image, out.detach().cpu(), os.path.join(resultsPath, image_name + "_map.png"), title=param["MODEL"]["MODEL_NAME"],pred_cnt=pred_cnt)
 
 
 if __name__ == '__main__':
     parser = parser.parse_args()
     main(parser)
+
+
+""" if use_first:
+        if not os.path.isfile(os.path.join(resultsPath, "first_image.txt")):
+            Exception("Change use first to true in the demoExp file")
+        with open(os.path.join(resultsPath, "first_image.txt"),"r") as f:
+            image_first = f.readlines()[0]
+        _, boxes = resize_img(Image.open(image_first).convert("RGB"), rects1, image_size, num_objects)
+        image, _ = resize_img(image, None, image_size, num_objects) """
 

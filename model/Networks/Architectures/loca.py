@@ -9,6 +9,12 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+######################################
+
+# from https://github.com/djukicn/loca
+
+######################################
+
 
 class LOCA(nn.Module):
 
@@ -38,7 +44,6 @@ class LOCA(nn.Module):
         scale_only:bool,
         scale_as_key:bool,
         trainable_references: bool,
-        rotation: bool,
         trainable_rotation: bool,
         trainable_rot_nb_blocks: int
     ):
@@ -57,9 +62,14 @@ class LOCA(nn.Module):
         self.first = first
         self.use_first = use_first
         self.trainable_references = trainable_references
-        self.rotation = rotation
         self.trainable_rotation = trainable_rotation
         self.device = device
+
+        #----------------------------------#
+        #
+        # Encoding part
+        #
+        #----------------------------------#
 
         if backbone_model == "MobileNetV3":
             self.backbone = MobileNetV3(
@@ -93,6 +103,12 @@ class LOCA(nn.Module):
                 num_encoder_layers, emb_dim, num_heads, dropout, layer_norm_eps,
                     mlp_factor, norm_first, activation, norm
                 )
+
+        #----------------------------------#
+        #
+        # Decoding part
+        #
+        #----------------------------------#
 
         if num_ope_iterative_steps > 0:
             self.ope = OPEModule(
@@ -144,7 +160,7 @@ class LOCA(nn.Module):
 
         query_features  = self.backbone(x)
         query_features  = self.input_proj(query_features) # out: bsx256x48x48 / 64x64 if the size of the image is 512
-        bs, nb_channels, h_q, w_q = query_features.size()
+        bs, _, h_q, w_q = query_features.size()
         pos_emb         = self.pos_emb(bs, h_q, w_q, query_features.device).flatten(2).permute(2, 0, 1)
         query_features  = query_features.flatten(2).permute(2, 0, 1) # out: bsx256x2048 then 2048xbsx256
 
@@ -180,9 +196,6 @@ class LOCA(nn.Module):
         ###############################################
         # OPE Module, only if num_iterative_layers > 0
         ###############################################
-
-        # still need to change train function in network
-        # to change if we want to include rotation
 
         if self.num_iterative_layers:
             all_prototypes = self.ope(f_e,f_e_references,pos_emb,pos_emb_references,bboxes)
@@ -239,90 +252,35 @@ class LOCA(nn.Module):
                 outputs.append(predicted_dmaps)
 
             return outputs[-1], outputs[:-1]
-        
-        ################################################
-        # rotation
-        ################################################
 
-        if self.rotation:
-
-            prototypes     = f_e_references.permute(0,1,4,2,3)                                               # bsxn_objectsx256x3x3
-            prototypes     = prototypes.flatten(0,2)                                                         # (768xbs)x3x3 (3072 if bs=4)
-            prototypes     = prototypes[:,None,...]                                                          # 3072x1x3x3
-            pi             = torch.acos(torch.zeros(1)).item() * 2                                                          
-
-            angles = [0,pi/4,pi/2,3*pi/4]
-            nb_rotations = 4
-            rotated_prototypes = torch.cat([batch_rotate_multiweight(prototypes.unsqueeze(0),torch.ones(1,1).to(self.device),torch.Tensor([angles[i]]).to(self.device).unsqueeze(0)) for i in range(nb_rotations)]) #3072*nb_rotationsx1x3x3 # batch size = 1 and number of angle = 1 to not change the function
-            # weights: 1x3072x1x3x3 | thetas: 1x1 | alphas: 1x1 | weights_out: 3072x1x3x3
-            
-            #depthwise correlation
-            response_maps = F.conv2d(
-                torch.cat([f_e for _ in range(num_objects*nb_rotations)], dim=1).flatten(0, 1).unsqueeze(0), # concat along the embedding dimension (256+256+256), then (768x4)x48x48 and thus 1x3072x48x48
-                rotated_prototypes,                                                                     # 3072x1x3x3      # out_channel, in_channel/group = 1, kernel_size, kernel_size                                                      
-                bias=None,
-                padding=self.kernel_dim // 2,
-                groups=rotated_prototypes.size(0)                                                       # 3072, we will have 3072 groups, thus 1 perchannel
-            ).view(                                                                             # out dim: 3072x48x48
-                bs, num_objects*nb_rotations, self.emb_dim, h_q, w_q                                         # reshape as 4x3x256x48x48
-            ).max(dim=1)[0]                                                                     # take the maximum value from the 3 objects
-
-            # send through regression heads
-            predicted_dmaps = self.regression_head(response_maps)
 
         ################################################
-        # trainable rotation
+        # Depth-wise correlation
         ################################################
+
+        prototypes     = f_e_references.permute(0,1,4,2,3)                                               # bsxn_objectsx256x3x3
+        prototypes     = prototypes.flatten(0,2)                                                         # (768xbs)x3x3 (3072 if bs=4)
+        prototypes     = prototypes[:,None,...]                                                          # 3072x1x3x3
         
         if self.trainable_rotation:
-            prototypes     = f_e_references.permute(0,1,4,2,3)                                               # bsxn_objectsx256x3x3
-            prototypes     = prototypes.flatten(0,2)                                                         # (768xbs)x3x3 (3072 if bs=4)
-            prototypes     = prototypes[:,None,...]                                                          # 3072x1x3x3
-
             nb_kernel = 4
             alphas, angles = self.rounting_func(f_e) # fe : bs x emb_dim x 48 x 48
 
-            rotated_prototypes = batch_rotate_multiweight(prototypes.repeat(nb_kernel,1,1,1,1), alphas.to(self.device), angles.to(self.device),trainable=True) # 3072x1x3x3
+            prototypes = batch_rotate_multiweight(prototypes.repeat(nb_kernel,1,1,1,1), alphas.to(self.device), angles.to(self.device),trainable=True) # 3072x1x3x3
 
-            #depthwise correlation
-            response_maps = F.conv2d(
-                torch.cat([f_e for _ in range(num_objects)], dim=1).flatten(0, 1).unsqueeze(0), # concat along the embedding dimension (256+256+256), then 1x(768x4)x48x48 and thus 1x3072x48x48
-                rotated_prototypes,                                                                     # 3072x1x3x3      # out_channel, in_channel/group = 1, kernel_size, kernel_size                                                      
-                bias=None,
-                padding=self.kernel_dim // 2,
-                groups=prototypes.size(0)                                                       # 3072, we will have 3072 groups, thus 1 perchannel
-            ).view(                                                                             # out dim: 3072x48x48
-                bs, num_objects, self.emb_dim, h_q, w_q                                         # reshape as 4x3x256x48x48
-            ).max(dim=1)[0]                                                                     # take the maximum value from the 3 objects
+        #depthwise correlation
+        response_maps = F.conv2d(
+            torch.cat([f_e for _ in range(num_objects)], dim=1).flatten(0, 1).unsqueeze(0), # concat along the embedding dimension (256+256+256), then 1x(768x4)x48x48 and thus 1x3072x48x48
+            prototypes,                                                                     # 3072x1x3x3      # out_channel, in_channel/group = 1, kernel_size, kernel_size                                                      
+            bias=None,
+            padding=self.kernel_dim // 2,
+            groups=prototypes.size(0)                                                       # 3072, we will have 3072 groups, thus 1 perchannel
+        ).view(                                                                             # out dim: 3072x48x48
+            bs, num_objects, self.emb_dim, h_q, w_q                                         # reshape as 4x3x256x48x48
+        ).max(dim=1)[0]                                                                     # take the maximum value from the 3 objects
 
-            # send through regression heads
-            predicted_dmaps = self.regression_head(response_maps)
-
-
-
-
-        ################################################
-        # Classical Depth-wise correlation
-        ################################################
-
-        else:
-            prototypes     = f_e_references.permute(0,1,4,2,3)                                               # bsxn_objectsx256x3x3
-            prototypes     = prototypes.flatten(0,2)                                                         # (768xbs)x3x3 (3072 if bs=4)
-            prototypes     = prototypes[:,None,...]                                                          # 3072x1x3x3
-
-            #depthwise correlation
-            response_maps = F.conv2d(
-                torch.cat([f_e for _ in range(num_objects)], dim=1).flatten(0, 1).unsqueeze(0), # concat along the embedding dimension (256+256+256), then 1x(768x4)x48x48 and thus 1x3072x48x48
-                prototypes,                                                                     # 3072x1x3x3      # out_channel, in_channel/group = 1, kernel_size, kernel_size                                                      
-                bias=None,
-                padding=self.kernel_dim // 2,
-                groups=prototypes.size(0)                                                       # 3072, we will have 3072 groups, thus 1 perchannel
-            ).view(                                                                             # out dim: 3072x48x48
-                bs, num_objects, self.emb_dim, h_q, w_q                                         # reshape as 4x3x256x48x48
-            ).max(dim=1)[0]                                                                     # take the maximum value from the 3 objects
-
-            # send through regression heads
-            predicted_dmaps = self.regression_head(response_maps)
+        # send through regression heads
+        predicted_dmaps = self.regression_head(response_maps)
 
         return predicted_dmaps, None
 
@@ -353,7 +311,6 @@ def build_model(param):
         scale_only=param["MODEL"]["SCALE_ONLY"],
         scale_as_key=param["MODEL"]["SCALE_AS_KEY"],
         trainable_references=param["MODEL"]["TRAINABLE_REFERENCES"],
-        rotation=param["MODEL"]["ROTATION"],
         trainable_rotation=param["MODEL"]["TRAINABLE_ROTATION"],
         trainable_rot_nb_blocks=param["MODEL"]["TRAINABLE_ROT_NB_BLOCKS"],
         norm=True,

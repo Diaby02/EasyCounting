@@ -64,8 +64,13 @@ In our project, three datasets have been used:
 * FSC_indu
 * Images_orin
 
-FSC-147 is the same as the official one, but we changed the split file by adding new configurations:
-* training_ar_uniform: a sub
+FSC147 is the same as the official one, but we changed the split file by adding new configurations:
+* training_ar_uniform: a subselection of the training images for a uniform training along the object aspect_ratio
+* test_indu: a subselection of the test images with only potential industrial images
+* test_distinct: a subselection of the test_indu images, where all object are perfectly distinguishable
+* test_vrac: the complementary of test_distinct
+
+the new split file is available [here](put_split_file_link)
 
 
 ### 2. 🚀 Set Up Anaconda Environment:
@@ -138,6 +143,8 @@ You can easily test you own dataset, but it has to meet some requirements:
 * the dataset folder must have the same structure as mentionned before
 * the images must be in .jpeg or .png format, while the density map must be tensor files .npy
 * the split.json file and annotation.json msut follow the same configuration as FSC147 and FSCindu
+
+## Testing your own image
 
 ## Training
 

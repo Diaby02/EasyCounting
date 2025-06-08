@@ -21,8 +21,8 @@ parser.add_argument('-exp', type=str, default='train')
 # MAIN PROCEDURE 
 # launches an experiment whose parameters are described in a yaml file  
 # 
-# Example of use in the terminal: python main.py -exp AdaptedLocaExp
-# with 'AdaptedLocaExp' beeing the name of the yaml file (in the Todo_list folder) with 
+# Example of use in the terminal: python main.py -exp trainExp
+# with 'trainExp' beeing the name of the yaml file (in the config folder) with 
 # the wanted configuration 
 # 
 ######################################################################################
@@ -33,15 +33,10 @@ def main(parser):
     # -----------------
     # Read the yaml configuration file 
     stream = open(os.path.join(rootDirectory,'config/' + parser.exp + '.yaml'), 'r')
-    param  = yaml.safe_load(stream)
-    # Path to the folder that will contain results of the experiment
-    if param["TRAINING"]["BACKBONE_LR"] > 0:
-        add = "_frozen"
-    else:
-        add= "" 
+    param  = yaml.safe_load(stream) 
 
-    resultsPath = os.path.join(rootDirectory, "Results", parser.exp+add)
-    checkpointsPath = os.path.join(rootDirectory, "checkpoints", parser.exp+add)
+    resultsPath = os.path.join(rootDirectory, "Results", parser.exp)
+    checkpointsPath = os.path.join(rootDirectory, "checkpoints")
 
     if not os.path.exists(checkpointsPath):
         os.mkdir(checkpointsPath)

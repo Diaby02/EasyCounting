@@ -30,19 +30,19 @@ from tqdm import tqdm
 
 class Network_Class: 
     # --------------------------------------------------------------------------------
-    # INITIALISATION OF THE MODEL
+    # INITIALIZATION OF THE MODEL
     # INPUTS: 
     #     - param (dic): dictionnary containing the parameters defined in the 
     #                    configuration (yaml) file
-    #     - imgDirectory (str): path to the folder containing the images 
-    #     - maskDirectory (str): path to the folder containing the masks
     #     - resultsPath (str): path to the folder containing the results of the 
     #                          experiement
+    #     - checkpointsPath (str): path to the checkpoints folder
     # --------------------------------------------------------------------------------
     def __init__(self, param, resultsPath, checkpointsPath=None):
-        # ----------------
-        # USEFUL VARIABLES 
-        # ----------------
+
+        # -----------------------------
+        # TRAINING AND MODEL VARIABLES 
+        # -----------------------------
         
         self.param         = param
         self.resultsPath   = resultsPath
@@ -57,6 +57,7 @@ class Network_Class:
         self.max_grad_norm = param["TRAINING"]["MAX_GRAD_NORM"]
         self.aux_weight    = param["TRAINING"]["AUX_WEIGHT"]
         self.prenorm       = param["TRAINING"]["PRENORM"]
+        self.mode          = param["TRAINING"]["MODE"]
 
         self.num_objects             = param["MODEL"]["NUM_OBJECTS"]
         self.kernel_dim              = param["MODEL"]["KERNEL_DIM"]
@@ -65,20 +66,23 @@ class Network_Class:
         self.padding                 = param["MODEL"]["PADDING"]
 
         self.device        = torch.device(param["TRAINING"]["DEVICE"])
+        self.print         = param["TRAINING"]["PRINT_NETWORK_STATS"]
 
         # -----------------------------------
         # DATASET ATTRIBUTES
         # -----------------------------------
 
-        self.data_path        = param["DATASET"]["DATA_PATH"]
         self.image_size       = param["DATASET"]["IMAGE_SIZE"]
         self.patch_size       = param["DATASET"]["PATCH_SIZE"]
         self.patch_size_ratio = param["DATASET"]["PATCH_SIZE_RATIO"]
         self.tiling_p         = param["DATASET"]["TILING_P"]
-        self.image_folder     = param["DATASET"]["IMAGE_FOLDER"]
-        self.gt_folder        = param["DATASET"]["GT_FOLDER"]
-        self.split_file       = param["DATASET"]["SPLIT_FILE"]
-        self.annotation_file  = param["DATASET"]["ANNOTATION_FILE"]
+
+        if self.mode != "demo":
+            self.data_path        = param["DATASET"]["DATA_PATH"]
+            self.image_folder     = param["DATASET"]["IMAGE_FOLDER"]
+            self.gt_folder        = param["DATASET"]["GT_FOLDER"]
+            self.split_file       = param["DATASET"]["SPLIT_FILE"]
+            self.annotation_file  = param["DATASET"]["ANNOTATION_FILE"]
         
         # -----------------------------------
         # NETWORK ARCHITECTURE INITIALISATION
@@ -87,11 +91,11 @@ class Network_Class:
         self.model = build_model(param).to(self.device)
         
         # -------------------
-        # TRAINING PARAMETERS
+        # TRAINING INITIATION
         # -------------------
 
         # separating the parameters of the model
-        if param["TRAINING"]["TRAIN"] != False:
+        if self.mode == "train":
             self.saving_name   = param["MODEL"]["SAVING_NAME"]
             self.training_data = param["DATASET"]["TRAINING_DATA"]
             backbone_params = dict()
@@ -111,9 +115,6 @@ class Network_Class:
             ], weight_decay=self.weight_decay)
             self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=self.lr_drop, gamma=0.25)
 
-        # ----------------------------------------------------
-        # DATASET INITIALISATION (from the dataLoader.py file)
-        # ----------------------------------------------------
             self.dataSetTrain    = FSCDataset(self.data_path, self.image_size, self.patch_size, self.image_folder, self.gt_folder, 
                                               self.split_file, self.annotation_file, self.training_data, self.num_objects, self.tiling_p, 
                                               padding=self.padding, patch_size_ratio=self.patch_size_ratio)
@@ -123,7 +124,11 @@ class Network_Class:
             self.trainDataLoader = DataLoader(self.dataSetTrain, batch_size=self.batchSize, shuffle=True,  num_workers=4)
             self.valDataLoader   = DataLoader(self.dataSetVal,   batch_size=self.batchSize, shuffle=False, num_workers=4)
         
-        if param["TRAINING"]["EVALUATE"]:
+        # -------------------
+        # TEST INITIATION
+        # -------------------
+
+        if self.mode == "test":
             self.model_name    = param["MODEL"]["MODEL_NAME"]
             self.test_data     = param["DATASET"]["TEST_DATA"]
             self.model_path    = param["MODEL"]["MODEL_PATH"]
@@ -137,21 +142,17 @@ class Network_Class:
     # ---------------------------------------------------------------------------
     # LOAD PRETRAINED WEIGHTS (to run evaluation without retraining the model...)
     # ---------------------------------------------------------------------------
+
     def loadWeights(self): 
-        if 'full' in self.model_path:
-            state_dict = torch.load(self.model_path, map_location=self.device)['model'] # load the model
-            self.model.load_state_dict(state_dict)
-        else:
-            state_dict = torch.load(self.model_path, map_location=self.device) # load the model
-            self.model.load_state_dict(state_dict)
+        state_dict = torch.load(self.model_path, map_location=self.device) # load the model
+        self.model.load_state_dict(state_dict)
         
     # -----------------------------------
     # TRAINING LOOP
     # -----------------------------------
     def train(self): 
 
-        # train for a given number of epochs
-        createFolder(self.resultsPath)
+        # save the results in a text file
         results = open(self.resultsPath + '/results_' + str(self.image_size) + "_"+ str(self.patch_size) +"_"+ str(self.kernel_dim) + '.txt', 'w')
         results.write('Training results: \n')
         results.write("lr: " + str(self.lr) + " batch_size: " + str(self.batchSize) + " Shape: " + str(self.image_size) + " nb_epoch " + str(self.epoch))
@@ -161,7 +162,6 @@ class Network_Class:
         train_losses = []
         valid_losses = []
         stats = []
-        to_print = True
 
         for i in range(self.epoch):
             
@@ -187,9 +187,9 @@ class Network_Class:
 
                 self.optimizer.zero_grad()
 
-                if to_print == True:
+                if self.print == True:
                     getInfoModel(self.model, img, bboxes_images,bboxes)
-                    to_print = False
+                    self.print = False
 
                 out, aux_out = self.model(img, bboxes_images,bboxes)
       
@@ -286,26 +286,21 @@ class Network_Class:
     # -------------------------------------------------
     # EVALUATION PROCEDURE
     # -------------------------------------------------
-    def evaluate(self,visu=False, peaks_bool=False, save_data=False, hm=False):
-        ae = torch.tensor(0.0).to(self.device) 
-        se = torch.tensor(0.0).to(self.device)
-        aep = 0
-        sep= 0
-        ground_truth = False
+    def evaluate(self,visu=False, save_data=False, hm=False):
+        
+        ae, se, cnt = 0,0,0
+        pbar = tqdm(self.testDataLoader)
         self.model.eval()
-        to_print = False
 
         start = time.time()
-        pbar = tqdm(self.testDataLoader)
-        cnt = 0
         with torch.no_grad():
             for im_path, img, bboxes_images, bboxes, init_boxes, gt, points, nb_points in pbar:
-                img    = img.to(self.device)
-                bboxes = bboxes.to(self.device)
+                img           = img.to(self.device)
+                bboxes        = bboxes.to(self.device)
                 bboxes_images = bboxes_images.to(self.device)
-                gt     = gt.to(self.device)
+                gt            = gt.to(self.device)
                 
-                if to_print == True:
+                if self.print == True:
 
                     def constructor(input_res):
                         return {"x":img, "references":bboxes_images, "bboxes":bboxes}
@@ -319,7 +314,7 @@ class Network_Class:
                     print('Computational complexity: {:<8}'.format(macs))
                     print('Computational complexity: {} {}Flops'.format(flops, flops_unit))
                     print('Number of parameters: {:<8}'.format(params))
-                    to_print = False
+                    self.print = False
 
                 out,_ = self.model(img, bboxes_images,bboxes)
 
@@ -339,45 +334,12 @@ class Network_Class:
                     cnt_err  = abs(pred_cnt-gt_cnt)
                     relative_error = round(abs(pred_cnt-gt_cnt)/(pred_cnt+0.5),2)
 
-
-                    # for the three function: size of out and gt = [h,w]
-                    # self.per_pixel_comparison(out[i].squeeze(0).detach().cpu(),gt[i].squeeze(0).detach().cpu(), im_path[i],self.resultsPath)
                     min_size_object= compute_min_size_object(bboxes[i].detach().cpu().squeeze(0))
-                    max_size_object= compute_max_size_object(bboxes[i].detach().cpu().squeeze(0))
-                    #compute_bbr_bbmre(out[i].detach().cpu().squeeze(0),gt[i].detach().cpu().squeeze(0),points[i],self.resultsPath,im_path[i],self.image_size,self.patch_size)
-
-                    if ground_truth:
-                        resultsPath = Path(self.resultsPath)
-                        resultsPath = resultsPath.parent.absolute()
-                        resultsPath = os.path.join(resultsPath,"test_indu_gt")
-
-                        if not os.path.exists(resultsPath):
-                            os.mkdir(resultsPath)
-
-                        compute_bbr_bbmre(gt[i].detach().cpu().squeeze(0),gt[i].detach().cpu().squeeze(0),points[i],resultsPath,im_path[i],self.image_size,self.patch_size)
-                        #hungarian_matching(gt[i].detach().cpu().squeeze(0),points[i][:nb_points[i],:].numpy(),min_size_object, max_size_object,im_path[i],resultsPath, self.patch_size, self.kernel_dim)
 
                     if hm:
-                        hungarian_matching(out[i].detach().cpu().squeeze(0),points[i][:nb_points[i],:].numpy(),min_size_object, max_size_object,im_path[i],self.resultsPath, self.patch_size, self.kernel_dim)
+                        compute_bbr_bbmape(out[i].detach().cpu().squeeze(0),gt[i].detach().cpu().squeeze(0),points[i],self.resultsPath,im_path[i],self.image_size,self.patch_size)
+                        hungarian_matching(out[i].detach().cpu().squeeze(0),points[i][:nb_points[i],:].numpy(),min_size_object,im_path[i],self.resultsPath, self.patch_size, self.kernel_dim)
                     
-                    # apply NMS
-                    if peaks_bool:
-                        peaks, pred_cnt_peaks, width, height = find_peaks(out[i].detach().cpu().unsqueeze(0),bboxes[i].detach().cpu(), threshold=0.15, mode='min')
-
-                        if height > 3*width or width > 3*height: #check if we have a rectangle
-                            err = np.abs(pred_cnt-gt_cnt)
-                        else:
-                            err = np.abs(pred_cnt_peaks-gt_cnt)
-
-                        aep += err
-                        sep += err**2
-
-                        pbar.set_description('Current MAE: {:5.2f}, Current MAE_P: {:5.2f}'.\
-                         format(ae/cnt, aep/cnt))
-                    
-                    else: 
-                        pbar.set_description('Current MAE: {:5.2f}'.\
-                         format(ae/cnt))
 
                     # save 3 images: 1) the input image with the bounding boxes, 2) the predicted density map, 3) both left and right
                     if visu:
@@ -387,21 +349,17 @@ class Network_Class:
                     if save_data:
                         save_data_statistics(out[i],gt[i],bboxes[i],im_path[i],cnt_err, relative_error, self.resultsPath,self.image_size,self.patch_size,self.kernel_dim)
 
+                pbar.set_description('Current MAE: {:5.2f}'.format(ae/cnt))
+
 
         total_time = time.time() - start
         print("Avg inf time: ", total_time/len(self.dataSetTest))              
         
         print(
             f"TEST set",
-            f"MAE: {ae.item() / len(self.dataSetTest):.2f}",
-            f"RMSE: {torch.sqrt(se / len(self.dataSetTest)).item():.2f}",
+            f"MAE: {ae / len(self.dataSetTest):.2f}",
+            f"RMSE: {np.sqrt(se / len(self.dataSetTest)):.2f}",
         )
-        if peaks_bool:
-            print(
-                f"TEST set",
-                f"MAE: {aep / len(self.dataSetTest):.2f}",
-                f"RMSE: {np.sqrt(sep / len(self.dataSetTest)):.2f}",
-            )
 
         #write result
         output_result = os.path.join(self.resultsPath, "result.txt")
@@ -417,17 +375,3 @@ class Network_Class:
     
     def get_model(self):
         return self.model
-
-
-# draft
-
-""" if ground_truth:
-    resultsPath = Path(self.resultsPath)
-    resultsPath = resultsPath.parent.absolute()
-    resultsPath = os.path.join(resultsPath,"test_distinct_gt")
-
-    if not os.path.exists(resultsPath):
-        os.mkdir(resultsPath)
-
-    compute_bbr_bbmre(gt[i].detach().cpu().squeeze(0),gt[i].detach().cpu().squeeze(0),points[i],resultsPath,im_path[i],self.image_size,self.patch_size)
-    hungarian_matching(gt[i].detach().cpu().squeeze(0),points[i][:nb_points[i],:].numpy(),min_size_object, max_size_object,im_path[i],resultsPath, self.patch_size, self.kernel_dim)  """

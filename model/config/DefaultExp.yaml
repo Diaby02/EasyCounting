@@ -1,33 +1,33 @@
 DATASET:
   ANNOTATION_FILE: annotation.json
-  DATA_PATH: /mnt/grodisk-nvme/Nicolas_student/FSC147
-  GT_FOLDER: gt_density_map_adaptive_384_384_object_VarV2
+  DATA_PATH: PATH_TO_DATA/FSCindu
+  GT_FOLDER: gt_density_map
   IMAGE_FOLDER: images
   IMAGE_SIZE: 384
   PATCH_SIZE: 32
   PATCH_SIZE_RATIO: 1
   SPLIT_FILE: split.json
-  TEST_DATA: test_distinct
+  TEST_DATA: test_FSC_indu
   TILING_P: 0.5
 MODEL:
-  BACKBONE_MODEL: MobileNetV3
+  BACKBONE_MODEL: DefaultExp
   EMB_DIM: 256
   KERNEL_DIM: 3
   LAST_LAYER: layer4
-  MODEL_NAME: MobileCount_32
-  MODEL_PATH: /mnt/grodisk-nvme/Nicolas_student/deepcounting/adapted_loca/checkpoints/AdaptedLocaExp/adapted_loca_32_p_rot_ope_mobbest.pt
+  MODEL_NAME: Default
+  MODEL_PATH: PATH_TO_REPO\checkpoints\CHECKPOINT_NAME.pt
   NB_CHANNEL: 64
   NUM_DECODER_LAYERS: 0
   NUM_ENC_LAYERS: 3
   NUM_HEADS: 8
   NUM_OBJECTS: 3
-  NUM_OPE_ITERATIVE_STEPS: 3
-  PADDING: true
+  NUM_OPE_ITERATIVE_STEPS: 0
+  PADDING: false
   REDUCTION: 8
   SCALE_AS_KEY: false
   SCALE_ONLY: false
   TRAINABLE_REFERENCES: false
-  TRAINABLE_ROTATION: true # /!\ work only with kernel == 3
+  TRAINABLE_ROTATION: false
   TRAINABLE_ROT_NB_BLOCKS: 1
 TRAINING:
   AUX_WEIGHT: 0.3

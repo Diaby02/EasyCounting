@@ -94,49 +94,7 @@ class ObjectNormalizedL2Loss(nn.Module):
 
     def forward(self, output, dmap, num_objects):
         return ((output - dmap) ** 2).sum() / num_objects
-    
-#--------------------------------------#
 
-# Select the bounding boxes
-
-#--------------------------------------#
-
-def select_exemplar_rois(image):
-    all_rois = []
-
-    print("Press 'q' or Esc to quit. Press 'n' and then use mouse drag to draw a new examplar, 'space' to save.")
-    while True:
-        key = cv2.waitKey(1) & 0xFF
-        if key == 27 or key == ord('q'):
-            break
-        elif key == ord('n') or key == '\r':
-            rect = cv2.selectROI("image", image, False, False)
-            x1 = rect[0]
-            y1 = rect[1]
-            x2 = x1 + rect[2] - 1
-            y2 = y1 + rect[3] - 1
-
-            all_rois.append([y1, x1, y2, x2])
-            for rect in all_rois:
-                y1, x1, y2, x2 = rect
-                cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 2)
-            print("Press q or Esc to quit. Press 'n' and then use mouse drag to draw a new examplar")
-
-    return all_rois
-
-def matlab_style_gauss2D(shape=(3,3),sigma=0.5):
-    """
-    2D gaussian mask - should give the same result as MATLAB's
-    fspecial('gaussian',[shape],[sigma])
-    """
-    m,n = [(ss-1.)/2. for ss in shape]
-    y,x = np.ogrid[-m:m+1,-n:n+1]
-    h = np.exp( -(x*x + y*y) / (2.*sigma*sigma) )
-    h[ h < np.finfo(h.dtype).eps*h.max() ] = 0
-    sumh = h.sum()
-    if sumh != 0:
-        h /= sumh
-    return h
 
 #-----------------------------------------------------------#
 
@@ -145,108 +103,77 @@ def matlab_style_gauss2D(shape=(3,3),sigma=0.5):
 #-----------------------------------------------------------#
 
 # BBDR and BBMAE computation
-def compute_bbr_bbmre(out,gt,points,resultsPath,im_path,image_size,patch_size, visu=False):
-        """
-        TODO
-        """
-        image_name = str(Path(im_path).stem)
-        rslt_path1 = os.path.join(resultsPath, "bbdr")
-        rslt_path2 = os.path.join(resultsPath, "bbmre")
-
-        bboxes_dt  = []
-        bboxes_mre = []
-
-        for i in range(4,29,4):
-            total_density = 0
-            total_mre = 0
-            nb_points = 0
-            for x,y in points:
-                if (x,y) == (0,0):
-                    break
-                nb_points +=1
-                x1, y1, x2, y2 = int(x-(i/2)),int(y-(i/2)),int(x+(i/2)),int(y+(i/2))
-                if x1 < 0:
-                    x1 = 0
-                if y1 < 0:
-                    y1 = 0
-                if x2 > image_size:
-                    x2 = image_size
-                if y2 > image_size:
-                    y2 = image_size
-
-                density_box = out[y1:y2,x1:x2].sum().item()
-                mre_box = abs(1 - density_box)
-                total_density += density_box
-                total_mre += mre_box
-            
-            total_density = total_density / out.sum().item()
-            total_mre = total_mre/nb_points
-            bboxes_dt.append(round(total_density,3))
-            bboxes_mre.append(round(total_mre,3))
-
-        columns_name = ["image_name","image_size","patch_size", "box_1", "box_2", "box_3", "box_4", "box_5", "box_6", "box_7"]
-        bboxes_dt, bboxes_mre = [image_name] + [image_size, patch_size] + bboxes_dt, [image_name] + [image_size, patch_size] + bboxes_mre
-
-        if (os.path.exists(rslt_path1+".csv")):
-            df1 = pd.read_csv(rslt_path1+".csv")
-            row_to_add = pd.DataFrame([bboxes_dt],columns=columns_name)
-            df1  = pd.concat([df1, row_to_add], ignore_index=True)
-        else:
-            df1 = pd.DataFrame([bboxes_dt],columns=columns_name)
-
-        df1.to_csv(rslt_path1+".csv", index=False)
-
-        if (os.path.exists(rslt_path2+".csv")):
-            df2 = pd.read_csv(rslt_path2+".csv")
-            row_to_add = pd.DataFrame([bboxes_mre],columns=columns_name)
-            df2  = pd.concat([df2, row_to_add], ignore_index=True)
-        else:
-            df2 = pd.DataFrame([bboxes_mre],columns=columns_name)
-
-        df2.to_csv(rslt_path2+".csv", index=False)
-
-        if visu:
-            plt.figure(figsize = (8,8))
-            plt.plot(range(4,29,4),bboxes_dt[2:],color='blue',marker="*")
-            plt.xlabel("Box size")
-            plt.ylabel("BBDR")
-            plt.savefig(rslt_path1+".pdf")
-            plt.close()
-            
-            plt.figure(figsize=(8,8))
-            plt.plot(range(4,29,4),bboxes_mre[2:], color='blue',marker="*")
-            plt.xlabel("Box size")
-            plt.ylabel("BBMRE")
-            plt.savefig(rslt_path2+".pdf")
-            plt.close()
-
-        return
-
-def per_pixel_comparison(out,gt,im_path,resultsPath):
+def compute_bbr_bbmape(out,points,resultsPath,im_path,image_size,patch_size):
     """
-    TODO
+    Computes the BBDR and BBMRE metrics for the given output and ground truth density map.
+    Args:
+        out (torch.Tensor): The output density map. size: (H,W)
+        points (torch.Tensor): List of points to compute the metrics. size (nb_points,2)
+        resultsPath (str): Path to save the results.
+        im_path (str): Path of the image.
+        image_size (int): Size of the image.
+        patch_size (int): Size of the patch.
+        visu (bool): Whether to visualize the results or not.
+    Returns:
+        None: The results are saved in the resultsPath with two csv files:
+        - bbdr.csv: Contains the BBDR metrics.
+        - bbmre.csv: Contains the BBMRE metrics.
     """
-    out = out.flatten(0)
-    gt = gt.flatten(0)
     image_name = str(Path(im_path).stem)
-    rslt_path = os.path.join(resultsPath, image_name + "_ppc.pdf")
+    rslt_path1 = os.path.join(resultsPath, "bbdr")
+    rslt_path2 = os.path.join(resultsPath, "bbmape")
 
-    x = np.linspace(0,torch.max(out).item()*2,1000)
+    bboxes_dt  = []
+    bboxes_mre = []
 
-    # plot the data
-    plt.figure(figsize = (8,8))
-    plt.plot(x,x,color="black",zorder=0)
-    plt.scatter(out, gt, color='red',zorder=1,s=1)
-    plt.xlabel('gt_m')
-    plt.ylabel('pred_m')
-    plt.title('pixel-wise comparison of the predicted vs the ground truth map')
-    plt.xlim(right=torch.max(out).item()*2)
-    plt.ylim(top=torch.max(out).item()*2)
-    plt.tight_layout()
-    plt.savefig(rslt_path)
-    plt.close()
+    for i in range(4,29,4):
+        total_density = 0
+        total_mre = 0
+        nb_points = 0
+        for x,y in points:
+            if (x,y) == (0,0):
+                break
+            nb_points +=1
+            x1, y1, x2, y2 = int(x-(i/2)),int(y-(i/2)),int(x+(i/2)),int(y+(i/2))
+            if x1 < 0:
+                x1 = 0
+            if y1 < 0:
+                y1 = 0
+            if x2 > image_size:
+                x2 = image_size
+            if y2 > image_size:
+                y2 = image_size
 
-    return
+            density_box = out[y1:y2,x1:x2].sum().item()
+            mre_box = abs(1 - density_box)
+            total_density += density_box
+            total_mre += mre_box
+        
+        total_density = total_density / out.sum().item()
+        total_mre = total_mre/nb_points
+        bboxes_dt.append(round(total_density,3))
+        bboxes_mre.append(round(total_mre,3))
+
+    columns_name = ["image_name","image_size","patch_size", "box_1", "box_2", "box_3", "box_4", "box_5", "box_6", "box_7"]
+    bboxes_dt, bboxes_mre = [image_name] + [image_size, patch_size] + bboxes_dt, [image_name] + [image_size, patch_size] + bboxes_mre
+
+    if (os.path.exists(rslt_path1+".csv")):
+        df1 = pd.read_csv(rslt_path1+".csv")
+        row_to_add = pd.DataFrame([bboxes_dt],columns=columns_name)
+        df1  = pd.concat([df1, row_to_add], ignore_index=True)
+    else:
+        df1 = pd.DataFrame([bboxes_dt],columns=columns_name)
+
+    df1.to_csv(rslt_path1+".csv", index=False)
+
+    if (os.path.exists(rslt_path2+".csv")):
+        df2 = pd.read_csv(rslt_path2+".csv")
+        row_to_add = pd.DataFrame([bboxes_mre],columns=columns_name)
+        df2  = pd.concat([df2, row_to_add], ignore_index=True)
+    else:
+        df2 = pd.DataFrame([bboxes_mre],columns=columns_name)
+
+    df2.to_csv(rslt_path2+".csv", index=False)
 
 #####################################################
 #       Optimal Transport Minimization (OTM)        #
@@ -254,9 +181,18 @@ def per_pixel_comparison(out,gt,im_path,resultsPath):
 
 def compute_otm(out,gt_points,visu=False):
     """
-    TODO
+    Computes the Optimal Transport Minimization (OTM) for the given output and ground truth points.
+    Args:
+        out (torch.Tensor): The output density map. size: (H,W)
+        gt_points (np.ndarray): Ground truth points. size: (nb_points,2)
+        visu (bool): Whether to visualize the results or not.
+    Returns:
+        predicted_points (np.ndarray): The predicted points after applying the OTM. size: (nb_predicted_points,2)
+        len(predicted_points) (int): The number of predicted points.
+        total_time (float): The total time taken to compute the OTM.
     """
     start = time.time()
+    # transform the density map into a list of points
     points,_,_ = den2points(out)
     predicted_points = den2seq(out, scale_factor=1, max_itern=16, ot_scaling=0.75)
 
@@ -286,14 +222,23 @@ def compute_otm(out,gt_points,visu=False):
 #       Hierachical Density-based Spatial Clustering of Applications with Noise (HDBSCAN)        #
 ##################################################################################################
 
-def compute_hdbscan(out,im_path,resultsPath,min_object_size,max_object_size,gt_points,visu=False):
+def compute_hdbscan(out,im_path,resultsPath,min_object_size,gt_points,visu=False):
     """
-    TODO
+    Computes the HDBSCAN clustering algorithm for the given output and ground truth points.
+    Args:
+        out (torch.Tensor): The output density map. size: (H,W)
+        im_path (str): Path of the image, used to get the name of the image.
+        resultsPath (str): Directory path to save the results.
+        min_object_size (int): Minimum size of the object to be detected.
+        gt_points (np.ndarray): Ground truth points. size: (nb_points,2)
+        visu (bool): Whether to visualize the results or not.
+    Returns:
+        centers (np.ndarray): The centers of the clusters detected by HDBSCAN. size: (nb_clusters,2)
+        len(centers) (int): The number of clusters detected.
+        total_time (float): The total time taken to compute the HDBSCAN.
     """
     image_name = str(Path(im_path).stem)
     rslt_path1 = os.path.join(resultsPath, image_name + "_hdbscan")
-
-    pred_count = round(out.sum().item())
 
     start = time.time()
     points, _, points_bool = den2points(out)
@@ -345,51 +290,20 @@ def compute_hdbscan(out,im_path,resultsPath,min_object_size,max_object_size,gt_p
 ##############################################
 #       Gaussian Mixture Models (GMN)        #
 ##############################################
-    
-def compute_wgmn_pre(out,im_path,resultsPath,gt_points,visu=False):
-    """
-    TODO
-    """
-    image_name = str(Path(im_path).stem)
-    rslt_path1 = os.path.join(resultsPath, image_name + "_gmm_pre")
-    #need to convert a density map to list of points
-    pred_count = round(out.sum().item())
-
-    start = time.time()
-    points, weights, _ = den2points(out)
-    
-    Mixture = [Normal() for _ in range(pred_count)]
-    gmm = GeneralMixtureModel(Mixture,max_iter=pred_count*2).fit(points, sample_weight=weights*10)
-
-    centers = np.empty(shape=(gmm.k, 2))
-    for i in range(gmm.k):
-        density = scipy.stats.multivariate_normal(cov=gmm.distributions[i].covs, mean=gmm.distributions[i].means, allow_singular=True).logpdf(points)
-        centers[i, :] = points[np.argmax(density)]
-    end = time.time()
-    total_time = round(end-start,3)
-    print("Total time to compute GMM pre: ",str(total_time)," s")
-
-    # exchange x and y
-    centers = centers.tolist()
-    centers = [coord[::-1] for coord in centers]
-    centers = np.array(centers)
-
-    if visu:
-        plt.figure(figsize=(6, 6))
-        plt.gca().invert_yaxis()
-        plt.scatter(points[:, 1], points[:, 0], c=gmm.predict(points))
-        plt.scatter(centers[:, 0], centers[:, 1], s=20, c=["orange"]*len(centers))
-        plt.scatter(gt_points[:, 0], gt_points[:, 1], s=20, c=["red"]*len(gt_points))
-        plt.title("Predicted_blobs")
-        plt.tight_layout()
-        plt.savefig(rslt_path1+".png")
-        plt.close()
-        
-    return centers, len(centers), total_time
 
 def compute_wgmn_ski(out,im_path,resultsPath,gt_points,visu=False):
     """
-    TODO
+    Computes the Gaussian Mixture Models (GMM) using the sklearn library for the given output and ground truth points.
+    Args:
+        out (torch.Tensor): The output density map. size: (H,W)
+        im_path (str): Path of the image, used to get the name of the image.
+        resultsPath (str): Directory path to save the results.
+        gt_points (np.ndarray): Ground truth points. size: (nb_points,2)
+        visu (bool): Whether to visualize the results or not.
+    Returns:
+        centers (np.ndarray): The centers of the clusters detected by GMM. size: (nb_clusters,2)
+        len(centers) (int): The number of clusters detected.
+        total_time (float): The total time taken to compute the GMM.
     """
     image_name = str(Path(im_path).stem)
     rslt_path1 = os.path.join(resultsPath, image_name + "_gmm_ski")
@@ -450,7 +364,13 @@ def compute_wgmn_ski(out,im_path,resultsPath,gt_points,visu=False):
 
 def den2points(out):
     """
-    TODO
+    Converts a density map to a list of points and their corresponding weights. 
+    Args:
+        out (torch.Tensor): The output density map. size: (H,W)
+    Returns:
+        points (np.ndarray): The list of points where the density is above a threshold. size: (nb_points,2)
+        weights (np.ndarray): The weights corresponding to the points. size: (nb_points,)
+        points_bool (np.ndarray): A boolean mask indicating the points where the density is above a threshold. size: (H,W)
     """
     points = []
     weights = []
@@ -470,7 +390,11 @@ def den2points(out):
 
 def compute_min_size_object(boxes):
     """
-    TODO
+    Computes the minimum size of the objects in the bounding boxes.
+    Args:
+        boxes (torch.Tensor): Bounding boxes of the objects. size: (nb_boxes, 4)
+    Returns:
+        min_size (int): The minimum size of the objects in the bounding boxes.
     """
     min_size = 384
     for j in range(0, boxes.shape[0]):
@@ -480,27 +404,22 @@ def compute_min_size_object(boxes):
 
     return min_size
 
-def compute_max_size_object(boxes):
-    """
-    TODO
-    """
-    max_size = 0
-    for j in range(0, boxes.shape[0]):
-        x1, y1, x2, y2 = int(boxes[j, 0].item()), int(boxes[j, 1].item()), int(boxes[j, 2].item()), int(boxes[j, 3].item())
-        max_size_temp = max(x2 - x1, y2 - y1)
-        max_size = max_size_temp if max_size_temp > max_size else max_size
 
-    return max_size
-
-
-def hungarian_matching(out, gt_centroids, min_size_object, max_size_object, im_path, resultsPath, patch_size, kernel_dim):
+def hungarian_matching(out, gt_centroids, min_size_object,im_path, resultsPath, patch_size, kernel_dim):
     """
-    out:             torch tensor of size [H,W]
-    gt_centroids:    np.ndarray of size [nb_points,2]
-    min_size_object: minimal with or height of the bounding boxes
-    im_path:         path of the image, used to get the name of the image
-    resultPath:      directory path
-    TODO
+    Computes the Hungarian matching between the predicted centroids and the ground truth centroids.
+    This function computes the precision, recall, and F1 score of the predicted centroids compared to the ground truth centroids.
+    Args:
+        out:             torch tensor of size [H,W]
+        gt_centroids:    np.ndarray of size [nb_points,2]
+        min_size_object: minimal with or height of the bounding boxes
+        im_path:         path of the image, used to get the name of the image
+        resultPath:      directory path
+        patch_size:      size of the patch used to compute the density map
+        kernel_dim:      size of the kernel used to compute the density map
+    Returns:
+        None: The results are saved in the resultsPath with a csv file named "hm.csv" containing the precision, recall, F1 score, and computation time for each method.
+
     """
     # saving file
     image_name = str(Path(im_path).stem)
@@ -514,11 +433,9 @@ def hungarian_matching(out, gt_centroids, min_size_object, max_size_object, im_p
     else:
         df = pd.DataFrame(columns=columns_name)
 
-    #centroids_int_prog,_ = compute_int_prog(out,gt_centroids, int(round((max_size_object-min_size_object)/2)),visu=True)
     centroids_otm, _, time_otm         = compute_otm(out,gt_centroids,visu=False)
     #centroids_gmns,_, time_gmns        = compute_wgmn_ski(out,im_path,resultsPath,gt_centroids,visu=False)
-    #centroids_gmnp,_, time_gmnp        = compute_wgmn_pre(out,im_path,resultsPath,gt_centroids,visu=False)
-    #centroids_hdbscan,_, time_hdbscan  = compute_hdbscan(out,im_path,resultsPath,min_size_object,max_size_object,gt_centroids,visu=False)
+    #centroids_hdbscan,_, time_hdbscan  = compute_hdbscan(out,im_path,resultsPath,min_size_object,gt_centroids,visu=False)
 
     #list_of_centroids = {"otm": centroids_otm, "gmms": centroids_gmns, "hdbscan": centroids_hdbscan} #",int_prog": centroids_int_prog}
     list_of_centroids = {"otm": centroids_otm}

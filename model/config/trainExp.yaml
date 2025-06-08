@@ -22,12 +22,11 @@ MODEL:
   NUM_OPE_ITERATIVE_STEPS: 0
   PADDING: false
   REDUCTION: 8
-  ROTATION: false
   SAVING_NAME: adapted_loca_32
   SCALE_AS_KEY: false
   SCALE_ONLY: false
   TRAINABLE_REFERENCES: false
-  TRAINABLE_ROTATION: false
+  TRAINABLE_ROTATION: false # /!\ work only with kernel == 3
   TRAINABLE_ROT_NB_BLOCKS: 1
 TRAINING:
   AUX_WEIGHT: 0.3
