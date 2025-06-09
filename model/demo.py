@@ -52,7 +52,7 @@ def main(parser):
     # -----------------
 
     # Read the yaml configuration file 
-    stream = open(rootDirectory + '\\config\\' + parser.exp + '.yaml', 'r')
+    stream = open(os.path.join(rootDirectory,'config', parser.exp + '.yaml'), 'r')
     param  = yaml.safe_load(stream)
 
     # Path to the folder that will contain results of the experiment 
@@ -66,7 +66,6 @@ def main(parser):
     image_size =  param["DATASET"]["IMAGE_SIZE"]
     input_image = param["DATASET"]["IMG_PATH"]
     num_objects = param["MODEL"]["NUM_OBJECTS"]
-    use_first =   param['TRAINING']['USE_FIRST']
 
     # ------------------------
     # 1. NETWORK INSTANTIATION 
@@ -117,17 +116,18 @@ def main(parser):
     # 4. INFERENCE
     # ---------------------
 
-    image, boxes = resize_img(image, rects1, image_size, num_objects)
+    image = Image.open(input_image).convert("RGB")
 
-    image = image.to(myNetwork.get_device())
-    boxes = boxes.to(myNetwork.get_device())
+    image, bboxes, bboxes_images = resize_img(image, rects1, image_size, num_objects,patch_size=param["DATASET"]["PATCH_SIZE"],padding=param["MODEL"]["PADDING"])
 
-    getInfoModel(myNetwork.get_model(), image, boxes)
+    image = image.unsqueeze(0).to(myNetwork.get_device())
+    bboxes = bboxes.unsqueeze(0).to(myNetwork.get_device())
+    bboxes_images = bboxes_images.unsqueeze(0).to(myNetwork.get_device())
 
     print(colored('Start Inference', 'red'))
     start = time.time()
     with torch.no_grad():
-            out, _ = myNetwork.get_model()(image, boxes)
+            out, _ = myNetwork.get_model()(image, bboxes_images, bboxes)
     end = time.time()
 
     if (end - start) > 1:
@@ -145,7 +145,7 @@ def main(parser):
     # 5. VISUALIZATION
     # ---------------------
     
-    if parser.visulalization:
+    if parser.visualization:
         simple_vizu(input_image, out.detach().cpu(), os.path.join(resultsPath, image_name + "_map.png"), title=param["MODEL"]["MODEL_NAME"],pred_cnt=pred_cnt)
 
 

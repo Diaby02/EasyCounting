@@ -197,37 +197,51 @@ class FSCDataset(Dataset):
     def __len__(self):
         return len(self.image_names)
     
-def resize_img(img, bboxes, img_size, num_objects):
+def resize_img(img, bboxes, img_size, num_objects,patch_size,padding=False):
     w, h = img.size
-
-    if bboxes is not None:
-
-        # Image version of the bboxes
-        box_trans = T.Compose([
-                T.Resize((36,36)),
-                T.ToTensor(),
-                T.Normalize(mean=IM_NORM_MEAN,
-                                    std=IM_NORM_STD)
-            ])
-        
-        bboxes_images = []
-        for box in bboxes:
-            box_ = img.crop(tuple(np.array(box)))
-            bboxes_images.append(box_trans(box_))
-        bboxes_images = torch.stack(bboxes_images, dim=0)
-
-        # Coordinates version of the bboxes
-        bboxes = torch.tensor(
-            [bboxes],
-            dtype=torch.float32
-        )[:num_objects, ...]
-        bboxes = bboxes / torch.tensor([w, h, w, h]) * img_size
 
     img = T.Compose([
         T.ToTensor(),
         T.Resize((img_size, img_size)),
         T.Normalize(mean=IM_NORM_MEAN, std=IM_NORM_STD)
     ])(img)
+
+    if bboxes is not None:
+
+        # Coordinates version of the bboxes
+        bboxes = torch.tensor(
+            [bboxes],
+            dtype=torch.float32
+        )[:num_objects, ...]
+        bboxes = (bboxes / torch.tensor([w, h, w, h])) * img_size
+        bboxes = bboxes.squeeze(0)
+
+        # Image version of the bboxes
+        box_trans = T.Compose([
+                T.Resize((int(patch_size), int(patch_size))),
+                T.Normalize(mean=IM_NORM_MEAN,
+                                    std=IM_NORM_STD)
+            ])
+        
+        box_trans2 = T.Compose([
+                T.ToTensor(),
+                T.Resize((int(patch_size), int(patch_size))),
+                T.Normalize(mean=IM_NORM_MEAN,
+                                    std=IM_NORM_STD)
+            ])
+        
+        bboxes_images = []
+        for i in range(0, bboxes.shape[0]):
+            x1, y1, x2, y2 = int(bboxes[i, 0].item()), int(bboxes[i, 1].item()), int(bboxes[i, 2].item()), int(
+                bboxes[i, 3].item())
+            box_ = img[:,y1:y2, x1:x2]
+
+            if padding:
+                box_ = expand2square(TVF.to_pil_image(box_), (0,0,0))
+                bboxes_images.append(box_trans2(box_))
+            else:
+                bboxes_images.append(box_trans(box_))
+        bboxes_images = torch.stack(bboxes_images, dim=0)
 
     return img, bboxes, bboxes_images
 

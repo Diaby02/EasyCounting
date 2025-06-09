@@ -1,18 +1,7 @@
-!adapted_loca/Results/
-adapted_loca/Results/*
-!adapted_loca/Results/BasicAndLayer/
-!adapted_loca/Results/BasicAndLightResNet/
-!adapted_loca/Results/DefaultExp/
-!adapted_loca/Results/EfficientNet/
-!adapted_loca/Results/EfficientNet_frozen/
-!adapted_loca/Results/MobileNetV3/
-!adapted_loca/Results/TinyViT
-
-adapted_loca/checkpoints/
-adapted_loca/__pycache__/
-adapted_loca/utils/__pycache__/
-adapted_loca/Networks/Architectures/__pycache__/
-adapted_loca/Networks/Architectures/ops/build/
-adapted_loca/Networks/Architectures/ops/dist/
-adapted_loca/Networks/Architectures/ops/MultiScaleDeformableAttention.egg-info/
+model/Results/
+model/checkpoints/
+model/Networks/__pycache__/
+model/Networks/Architectures/__pycache__/
+model/Networks/Architectures/anomalib_functions/__pycache__/
+model/utils/__pycache__/
 

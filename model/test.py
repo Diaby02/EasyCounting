@@ -18,7 +18,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-exp', type=str, default='testExp')
 parser.add_argument('-out', type=str, default=os.path.join(rootDirectory, "Results/"))
 parser.add_argument('-v', '--visu', action="store_true")
-parser.add_argument('-p', '--peaks', action="store_true")
 parser.add_argument('-sd', '--save_data', action="store_true")
 parser.add_argument('-hm', '--hungarian_matching', action="store_true")
 
@@ -53,7 +52,7 @@ def main(parser):
     # 3. EVALUATE
     #---------------------
 
-    myNetwork.evaluate(visu=parser.visu, peaks_bool=parser.peaks, save_data=parser.save_data, hm=parser.hungarian_matching)
+    myNetwork.evaluate(visu=parser.visu, save_data=parser.save_data, hm=parser.hungarian_matching)
 
 
 

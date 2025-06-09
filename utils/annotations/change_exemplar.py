@@ -6,28 +6,6 @@
 
 # Imports
 
-"""
-We train the FamNet using the training images of our
-dataset. Each training image contains multiple objects of
-interest, but only the exemplar objects are annotated with
-bounding boxes and the majority of the objects only have
-dot annotations. It is, however, difficult to train a density estimation network with the training loss that is defined based
-on the dot annotations directly. Most existing works for visual counting, especially for crowd counting [55], convolve
-the dot annotation map with a Gaussian window of a fixed
-size, typically 15×15, to generate a smoothed target density
-map for training the density estimation network.
-
-Our dataset consists of 147 different categories, where
-there is huge variation in the sizes of the objects. Therefore, to generate the target density map, we use Gaussian
-smoothing with adaptive window size. First, we use dot annotations to estimate the size of the objects. Given the dot
-annotation map, where each dot is at an approximate center
-of an object, we compute the distance between each dot and
-its nearest neighbor, and average these distances for all the
-dots in the image. This average distance is used as the size
-of the Gaussian window to generate the target density map.
-The standard deviation of the Gaussian is set to be a quarter
-of the window size.
-"""
 
 import json
 import cv2 # Import the OpenCV library
@@ -43,6 +21,13 @@ import os
 import argparse
 import time
 from os.path import dirname, abspath
+
+#################################################################
+
+# Same file as the script_annotation but changing the bounding boxes
+# no dot annotation here, only bounding boxes
+
+#################################################################
 
 drawing = False
 nb_bbox = 0

@@ -120,7 +120,7 @@ There are 4 different configuration of the models:
 Pay attention to also provide the correct checkpoints path, as well as provide the name you want to give to your model.
 Make shure to create the ```Results/``` folder specified in the structure of the code, otherwise you will get an error.
 
-For testing just run
+For testing, go to ```cd model``` and just run
 
 ```
 python test.py 
@@ -145,6 +145,19 @@ You can easily test you own dataset, but it has to meet some requirements:
 * the split.json file and annotation.json msut follow the same configuration as FSC147 and FSCindu
 
 ## Testing your own image
+
+A demo is available for testing you own image, just change the ```demoExp.yaml``` with the path of your image and your bounding boxes.
+The default model is EasyCounting_64 but you can change the config to use another one. Once it is done, go to ```/model``` and run
+
+```
+python demo.py [-v]
+```
+
+if you don't have any annotation for your image, an annotator script (```annotator.py```) is available in ```utils/annotations/```. You just need to run
+
+```
+python annotator -i path_to_your_image -o path_to_the_output_folder
+```
 
 ## Training
 

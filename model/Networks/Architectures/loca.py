@@ -35,8 +35,6 @@ class LOCA(nn.Module):
         mlp_factor: int,
         norm_first: bool,
         activation: nn.Module,
-        first: bool,
-        use_first: bool,
         norm: bool,
         last_layer: str,
         backbone_model: str,
@@ -59,8 +57,6 @@ class LOCA(nn.Module):
         self.num_encoder_layers = num_encoder_layers
         self.num_decoder_layers = num_decoder_layers
         self.num_iterative_layers = num_ope_iterative_steps
-        self.first = first
-        self.use_first = use_first
         self.trainable_references = trainable_references
         self.trainable_rotation = trainable_rotation
         self.device = device
@@ -303,8 +299,6 @@ def build_model(param):
         mlp_factor=8,
         norm_first= param["TRAINING"]["PRENORM"],
         activation=nn.GELU,
-        first= param['TRAINING']['FIRST'],
-        use_first= param['TRAINING']['USE_FIRST'],
         last_layer= param['MODEL']['LAST_LAYER'],
         backbone_model= param['MODEL']['BACKBONE_MODEL'],
         device= param['TRAINING']['DEVICE'],

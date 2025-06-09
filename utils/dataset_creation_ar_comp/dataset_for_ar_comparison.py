@@ -9,6 +9,15 @@ import cv2
 
 rootDirectory = dirname(abspath(__file__))
 
+################################################################################
+
+# MAIN PROCEDURE
+
+# This python file aims to create the FSCEuresys dataset for the AR comparison.
+# It will crop the images into 384x384 images, and measure the size of the object in the image.
+# If the object is too small, it will concat the images to make the object bigger.
+# If the object is too big, it will crop the image to make the object smaller.
+
 # -----------------------------------------------------------------------------#
 
 # Helpers

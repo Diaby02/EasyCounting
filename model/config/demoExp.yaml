@@ -2,8 +2,8 @@ DATASET:
   IMAGE_SIZE: 384
   PATCH_SIZE: 64
   PATCH_SIZE_RATIO: 1
-  IMG_BOX: PATH_TO_IMAGE_BOX
-  IMG_PATH: PATH_TO_IMAGE
+  IMG_BOX: /home/nibou/Documents/Master_thesis_Euresys/EasyCounting/model/utils/orange_box.txt
+  IMG_PATH: /home/nibou/Documents/Master_thesis_Euresys/EasyCounting/model/utils/orange.jpg
   TILING_P: 0.5
 MODEL:
   BACKBONE_MODEL: DefaultExp
@@ -11,7 +11,7 @@ MODEL:
   KERNEL_DIM: 3
   LAST_LAYER: layer4
   MODEL_NAME: EasyCounting_64
-  MODEL_PATH: PATH_TO_REPO\checkpoints\easycounting_64.pt
+  MODEL_PATH: /home/nibou/Documents/Master_thesis_Euresys/EasyCounting/model/checkpoints/easycounting_64.pt
   NB_CHANNEL: 64
   NUM_DECODER_LAYERS: 0
   NUM_ENC_LAYERS: 3
@@ -26,13 +26,13 @@ MODEL:
   TRAINABLE_ROTATION: false
   TRAINABLE_ROT_NB_BLOCKS: 1
 TRAINING:
-  MODE: "demo" # demo, train or test
+  MODE: demo # demo, train or test
   DEVICE: cuda:0
   PRINT_NETWORK_STATS: false
 
   AUX_WEIGHT: 0.3
   BACKBONE_LR: 0
-  BATCH_SIZE: 4
+  BATCH_SIZE: 1
   DROPOUT: 0.1
   EPOCH: 100
   LEARNING_RATE: 0.0001

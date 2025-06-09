@@ -6,29 +6,6 @@
 
 # Imports
 
-"""
-We train the FamNet using the training images of our
-dataset. Each training image contains multiple objects of
-interest, but only the exemplar objects are annotated with
-bounding boxes and the majority of the objects only have
-dot annotations. It is, however, difficult to train a density estimation network with the training loss that is defined based
-on the dot annotations directly. Most existing works for visual counting, especially for crowd counting [55], convolve
-the dot annotation map with a Gaussian window of a fixed
-size, typically 15×15, to generate a smoothed target density
-map for training the density estimation network.
-
-Our dataset consists of 147 different categories, where
-there is huge variation in the sizes of the objects. Therefore, to generate the target density map, we use Gaussian
-smoothing with adaptive window size. First, we use dot annotations to estimate the size of the objects. Given the dot
-annotation map, where each dot is at an approximate center
-of an object, we compute the distance between each dot and
-its nearest neighbor, and average these distances for all the
-dots in the image. This average distance is used as the size
-of the Gaussian window to generate the target density map.
-The standard deviation of the Gaussian is set to be a quarter
-of the window size.
-"""
-
 import json
 import cv2 # Import the OpenCV library
 import numpy as np # Import Numpy library
@@ -44,12 +21,21 @@ import argparse
 import time
 from os.path import dirname, abspath
 
+#################################################################
+
+# This script annotate one image with 3 bounding boxes and
+# dot annotations for each object in the image. It then generates a density map
+# and saves the annotations in a JSON file.
+#
+#################################################################
+
 drawing = False
 nb_bbox = 0
 
 rootDirectory = dirname(abspath(__file__))
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input-image", type=str, required=True, help="/Path/to/input/image/file/")
+parser.add_argument("-o", "--output-directory", type=str, default=rootDirectory, help="Path to the output directory where the annotations will be saved.")
 
 points = []
 box_all_coordinates = []
@@ -186,7 +172,17 @@ def draw_bbox(event, x,y, flags, param):
         else:
             cv2.circle(image,(x,y),5,(0,0,255),1)
 
-def main(im_path):
+def main(im_path,output_dir):
+    """
+    Main function to run the annotation script.
+    Args:
+        im_path (str): Path to the input image.
+        dataset (bool): If the image is part of a dataset, set to True. Modify the script to save annotations in the dataset folder.
+    Returns:
+        None
+    This function allows the user to annotate an image by clicking on points and drawing bounding boxes.
+    It saves the annotated image, the points, and the bounding boxes in a JSON file and generates a density map.
+    """
 
     start = time.time()
     global image, image2, OUTPUT_IMAGE, nb_bbox, points, box_coordinates, box_all_coordinates
@@ -200,17 +196,17 @@ def main(im_path):
 
     print(INPUT_IMAGE)
 
-    dataset_path = Path(INPUT_IMAGE).parent.parent
-    dataset_name = dataset_path.stem
-    dataset_name = dataset_name.replace("images",dataset_path.parent.stem)
+    dataset_path = output_dir
+    dataset_name = Path(dataset_path).stem
+    print("Dataset name: ", dataset_name)
 
     creating_folders(dataset_path)
-    print(str(dataset_path))
-    #INPUT_IMAGE = "Images_0.png"
+    print("Dataset path: ", dataset_path)
+
     IMAGE_NAME = Path(INPUT_IMAGE).stem
     whole_image_name = os.path.basename(INPUT_IMAGE)
     OUTPUT_IMAGE = os.path.join(dataset_path, "images_annotated/" + IMAGE_NAME + "_annotated.jpg")
-
+    
     #check if the image has already been processed
     if os.path.exists(OUTPUT_IMAGE):
         print("The file exists.")
@@ -309,8 +305,9 @@ def main(im_path):
 if __name__ == '__main__':
     args = parser.parse_args()
     im_path = args.input_image
+    output_dir = args.output_directory
 
-    main(im_path)
+    main(im_path,output_dir)
 
 """
 if (bbox_file is None or bbox_file == ""): # if no bounding box file is given, prompt the user for a set of bounding boxes

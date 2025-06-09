@@ -1,4 +1,5 @@
 from matplotlib import pyplot as plt
+from termcolor import colored
 from utils.utils_ import ObjectNormalizedL2Loss, getInfoModel, createFolder
 from utils.dataLoader import *
 from .Architectures.loca import build_model
@@ -136,6 +137,14 @@ class Network_Class:
                                            self.split_file, self.annotation_file, self.test_data, self.num_objects, self.tiling_p, 
                                            padding=self.padding, patch_size_ratio=self.patch_size_ratio)
             self.testDataLoader  = DataLoader(self.dataSetTest,  batch_size=self.batchSize, shuffle=False, num_workers=4)
+
+        # -------------------
+        # DEMO INITIATION
+        # -------------------
+
+        if self.mode == "demo":
+            self.model_name   = param["MODEL"]["MODEL_NAME"]
+            self.model_path    = param["MODEL"]["MODEL_PATH"]
 
 
 
