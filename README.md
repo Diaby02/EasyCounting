@@ -37,13 +37,17 @@ $PATH_TO_REPO/
 │    ├──── checkpoints/
 │    ├──── config/
 │    ├──── Results/
+│    ├──── utils/
 │    ├──── demo.py
 │    ├──── test.py
+│    ├──── main.py
 │    
 ├──── plots_and_statistics/
 ├──── utils/
 ├──── scripts/
-├────.gitignore
+├──── .gitignore
+├──── README.md
+├──── requirements.txt
 
 ````
 
@@ -52,8 +56,10 @@ The model folder EasyCounting must have
 * A Results folder containing all the results from the testing metrics, visualisation, ...
 * A config folder containing at least a demoExp.yaml and a testExp.yaml, containing the parameters of the model you which to modify
 
-The model is trainable by running the function main.py. We will explain our to configure
-each model later in the repo
+Among the folders:
+* The plot_and_statistics folder contains the scripts and data used to generate the heatmaps in the master thesis
+* The utils folder contains usefull scripts for annotations, analysis, ...
+* The scripts folder contains some bash scripts used for training
 
 ## Preparation
 ### 1. 📦 Download Datasets
@@ -61,8 +67,8 @@ each model later in the repo
 In our project, three datasets have been used:
 
 * [FSC-147](https://github.com/cvlab-stonybrook/LearningToCountEverything)
-* FSC_indu
-* Images_orin
+* [FSC_indu] (https://drive.google.com/file/d/1prCOH_NnQeY2pU91Mja7OsDTHvcRsP-m/view?usp=sharing)
+* [FSCEuresys] (https://drive.google.com/file/d/1prCOH_NnQeY2pU91Mja7OsDTHvcRsP-m/view?usp=sharing)
 
 FSC147 is the same as the official one, but we changed the split file by adding new configurations:
 * training_ar_uniform: a subselection of the training images for a uniform training along the object aspect_ratio
@@ -70,7 +76,7 @@ FSC147 is the same as the official one, but we changed the split file by adding 
 * test_distinct: a subselection of the test_indu images, where all object are perfectly distinguishable
 * test_vrac: the complementary of test_distinct
 
-the new split file is available [here](put_split_file_link)
+the new split file is available [here](https://drive.google.com/file/d/19OmCkD27XECfYeqi_4CtYao7762xOXet/view?usp=sharing)
 
 
 ### 2. 🚀 Set Up Anaconda Environment:
@@ -84,7 +90,7 @@ cd EasyCounting
 pip install -r requirements.txt
 ```
 
-### 3. Download Pre-Trained Weights
+### 3. 📥​ Download Pre-Trained Weights
 
 * Make the ```checkpoints``` directory inside the ```model``` repository.
 
@@ -142,7 +148,7 @@ python test.py -exp EasyCouting32Exp -v -hm -d
 You can easily test you own dataset, but it has to meet some requirements:
 * the dataset folder must have the same structure as mentionned before
 * the images must be in .jpeg or .png format, while the density map must be tensor files .npy
-* the split.json file and annotation.json msut follow the same configuration as FSC147 and FSCindu
+* the split.json file and annotation.json must follow the same configuration as FSC147 and FSCindu
 
 ## Testing your own image
 
