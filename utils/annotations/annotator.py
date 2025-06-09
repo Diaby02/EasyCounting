@@ -86,7 +86,7 @@ def gaussian_filter_density(img,points):
     sigma = round(radius/4)
     print("Sigma :", sigma)
 
-    print ('generate density...')
+    print ('\n generate density...')
     for i, pt in enumerate(points):
         pt2d = np.zeros(img_shape, dtype=np.float32)
         if int(pt[1])<img_shape[0] and int(pt[0])<img_shape[1]:
@@ -162,7 +162,7 @@ def draw_bbox(event, x,y, flags, param):
             cv2.imwrite(OUTPUT_IMAGE, image2)
             
             if len(box_coordinates) == 3:
-                print("You have now enough rectangles")
+                print("You have now enough rectangles\n")
             elif len(box_coordinates) == 2:
                 print("Rectangle " + str(len(box_coordinates)) + " drawed, " + str(3 - len(box_coordinates)) + " more is needed")
             else:
@@ -222,8 +222,12 @@ def main(im_path,output_dir):
     ############################################################
  
     # Prompt user for another annotation
-    print("Welcome to the Image Annotation Program!\n")
-    print("Double click anywhere inside the image to annotate that point...\n")
+    print("\n----------------------------------------")
+    print("Welcome to the Image Annotation Program !")
+    print("----------------------------------------\n")
+
+    print("This program allows you to generate a denisty map by manually annotating the centers of objects in an image. Afterwards, you can draw 3 bounding boxes around the objects you want to count.\n")
+    print("If you don't want to generate a density map, you can skip the point annotation step by pressing 'q'. Otherwise, you can double click anywhere inside the image to annotate that point...\n")
     
     # We create a named window where the mouse callback will be established
     cv2.namedWindow('Image mouse',cv2.WINDOW_FULLSCREEN)
@@ -264,11 +268,15 @@ def main(im_path,output_dir):
     data_image = {"H": image.shape[0], "W": image.shape[1], "box_examples_coordinates": box_all_coordinates,"box_coordinates":box_coordinates, "points": points}
 
     # generate density map
-    density_map = gaussian_filter_density(image,points)
-    np.save(os.path.join(dataset_path, "gt_density_map/" + IMAGE_NAME), density_map)
-    plt.imshow(density_map, cmap='viridis', interpolation="nearest")
-    plt.axis('off')
-    plt.savefig(os.path.join(dataset_path, "gt_density_map/" + IMAGE_NAME + "_gt.jpg"), bbox_inches='tight', pad_inches=0)
+    if len(points) == 0:
+        print("No points were annotated, skipping density map generation.")
+        density_map = np.zeros((image.shape[0], image.shape[1]), dtype=np.float32)
+    else:
+        density_map = gaussian_filter_density(image,points)
+        np.save(os.path.join(dataset_path, "gt_density_map/" + IMAGE_NAME), density_map)
+        plt.imshow(density_map, cmap='viridis', interpolation="nearest")
+        plt.axis('off')
+        plt.savefig(os.path.join(dataset_path, "gt_density_map/" + IMAGE_NAME + "_gt.jpg"), bbox_inches='tight', pad_inches=0)
 
     #generating bbox_file
     out_bbox_file = os.path.join(dataset_path, "bboxes/"+ IMAGE_NAME + "_box.txt")
